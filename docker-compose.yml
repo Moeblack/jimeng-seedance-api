@@ -11,7 +11,10 @@ services:
     restart: unless-stopped
     ports:
       - "5100:5100"
-    #volumes:
+      - "5101:5101"
+    volumes:
+      # 挂载 HTTPS 证书目录（可选，放入 cert.pem 和 key.pem 即可启用 HTTPS）
+      - ./certs:/app/certs
     #  # 挂载日志目录（确保权限正确）
     #  - ./logs:/app/logs
     #  # 挂载临时目录
