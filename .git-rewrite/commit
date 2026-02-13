@@ -1,0 +1,13 @@
+tree 3a88eeef41552cccb5b26fb5f4376768f9c235de
+parent 2d14b2b5b78cac032a0409fb242582a7c09eec7f
+author root <root@DESKTOP-NCRQ1EG.localdomain> 1769319158 +0800
+committer root <root@DESKTOP-NCRQ1EG.localdomain> 1769319158 +0800
+
+docs: update Token API response format documentation
+
+- Add response format for /token/check endpoint
+- Add response format for /token/points endpoint
+- Add missing `received` and `error` fields for /token/receive endpoint
+- Add response field descriptions
+
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>

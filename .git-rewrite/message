@@ -1,0 +1,12 @@
+feat: remove /v1/chat/completions endpoint
+
+- Delete chat route and controller files
+- Update routes/index.ts to remove chat references
+- Update server.ts error message to be generic
+- Update README.md and README.CN.md documentation
+
+This endpoint was a wrapper around images/videos APIs for OpenAI
+Chat API compatibility. Direct image/video generation APIs remain
+available.
+
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>

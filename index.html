@@ -1,0 +1,1751 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jimeng API - Async Console</title>
+  
+  <!-- 98.css for Windows 98/2000 style UI -->
+  <link rel="stylesheet" href="https://unpkg.com/98.css">
+  
+  <!-- Vue 3 & Axios via CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+  <style>
+    body {
+      background-color: #008080;
+      font-family: 'Pixelated MS Sans Serif', Arial;
+      margin: 0;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    #app {
+      width: 100%;
+      max-width: 800px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .window {
+      width: 100%;
+    }
+
+    .window-body {
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 8px;
+    }
+
+    .field-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    
+    .field-row > label {
+      min-width: 90px;
+      margin-bottom: 0;
+    }
+
+    .field-row > input[type="text"], 
+    .field-row > input[type="number"], 
+    .field-row > select,
+    .field-row > textarea {
+      flex: 1;
+      min-width: 200px;
+      box-sizing: border-box;
+    }
+
+    .field-row > textarea {
+      resize: vertical;
+      min-height: 60px;
+      font-family: inherit;
+    }
+
+    /* Tabs styling adjustment */
+    menu[role="tablist"] {
+      display: flex;
+      flex-wrap: wrap;
+      margin-bottom: 0;
+    }
+    
+    menu[role="tablist"] > li {
+      flex: 1;
+      text-align: center;
+      min-width: 100px;
+      margin-bottom: -2px;
+      z-index: 1;
+    }
+
+    menu[role="tablist"] > li[aria-selected="true"] {
+      z-index: 3;
+    }
+
+    .tab-content {
+      background: #c0c0c0;
+      padding: 15px;
+      border: 1px solid #fff;
+      border-right-color: #888;
+      border-bottom-color: #888;
+      box-shadow: inset 1px 1px #dfdfdf, inset -1px -1px #0a0a0a;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Task list styling */
+    .task-list {
+      background: white;
+      border: 2px inset #fff;
+      height: 300px;
+      overflow-y: auto;
+      padding: 5px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .task-item {
+      padding: 6px;
+      border-bottom: 1px dashed #ccc;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      cursor: pointer;
+    }
+
+    .task-item:hover {
+      background-color: #e0e0e0;
+    }
+
+    .task-item.selected {
+      background-color: #000080;
+      color: white;
+    }
+
+    .task-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    .task-info {
+      font-size: 11px;
+      word-break: break-all;
+    }
+
+    /* Status colors */
+    .status-pending { color: #808080; }
+    .status-processing { color: #0000ff; }
+    .status-completed { color: #008000; }
+    .status-failed { color: #ff0000; }
+    
+    .task-item.selected .status-pending,
+    .task-item.selected .status-processing,
+    .task-item.selected .status-completed,
+.task-item.selected .status-failed {
+      color: white;
+    }
+
+    .progress-container {
+      width: 100%;
+      height: 15px;
+      border: inset 2px;
+      background: #c0c0c0;
+      position: relative;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: #000080;
+      width: 0%;
+      transition: width 0.3s;
+    }
+
+    .progress-text {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      text-align: center;
+      font-size: 11px;
+      line-height: 11px;
+      color: white;
+      mix-blend-mode: difference;
+    }
+
+    .action-bar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .btn-block {
+      width: 100%;
+      padding: 8px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    /* Modal Styling */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 10px;
+    }
+
+    .modal-window {
+      width: 100%;
+      max-width: 600px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf, inset -2px -2px grey, inset 2px 2px #fff;
+      background: #c0c0c0;
+      padding: 3px;
+    }
+
+    .modal-body {
+      overflow-y: auto;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 10px;
+    }
+
+    .preview-media {
+      max-width: 100%;
+      max-height: 50vh;
+      border: inset 2px;
+      background: #000;
+      object-fit: contain;
+    }
+
+    .error-text {
+      color: red;
+      font-weight: bold;
+      word-break: break-all;
+    }
+
+    .stats-bar {
+      display: flex;
+      gap: 10px;
+      font-size: 11px;
+      margin-top: 5px;
+      flex-wrap: wrap;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 600px) {
+      .field-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .field-row > label {
+        margin-bottom: 2px;
+      }
+    }
+    
+    .loading-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #c0c0c0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+    }
+    .win-progress-bar {
+      width: 200px;
+      height: 20px;
+      border-top: 1px solid #808080; border-left: 1px solid #808080; border-right: 1px solid #fff; border-bottom: 1px solid #fff;
+      background: #fff; padding: 2px; display: flex; gap: 2px;
+    }
+    .win-progress-chunk {
+      width: 10px; height: 100%;
+      background: #000080;
+    }
+    .file-list {
+      background: #fff; border: 2px inset #dfdfdf; padding: 2px;
+      display: flex; flex-direction: column; gap: 0;
+      max-height: 150px; overflow-y: auto; margin-top: 4px;
+    }
+    .file-tag {
+      display: flex; align-items: center; gap: 5px;
+      padding: 2px 4px; font-size: 11px; color: #000;
+    }
+    .file-tag:hover, .file-tag.insertable:hover { background: #000080; color: #fff; }
+    .file-tag .file-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+    .file-tag .tag-actions { display: flex; gap: 2px; }
+    .file-tag .tag-actions button {
+      background: #c0c0c0; border: 2px outset #fff; color: #000;
+      font-size: 10px; min-width: 20px; height: 18px; padding: 0 2px; cursor: pointer; font-weight: normal; line-height: 1;
+    }
+    .file-tag .tag-actions button:active { border-style: inset; }
+
+    /* === Prompt Rich Editor === */
+    .prompt-editor-wrapper {
+      flex: 1;
+      min-width: 200px;
+      position: relative;
+    }
+    .prompt-editor {
+      border: 2px inset #fff;
+      background: white;
+      min-height: 60px;
+      max-height: 120px;
+      padding: 4px;
+      font-family: 'Pixelated MS Sans Serif', Arial;
+      font-size: 11px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      cursor: text;
+      outline: none;
+    }
+    .prompt-editor:empty::before {
+      content: attr(data-placeholder);
+      color: #808080;
+      pointer-events: none;
+    }
+    .ref-tag {
+      display: inline-block;
+      background: #c0c0c0;
+      border: 2px outset #fff;
+      padding: 1px 4px;
+      margin: 1px 2px;
+      font-size: 10px;
+      cursor: pointer;
+      user-select: all;
+      vertical-align: baseline;
+      white-space: nowrap;
+      color: #000;
+    }
+    .ref-tag:hover { background: #dfdfdf; }
+    .ref-tag:active { border-style: inset; }
+    .ref-tag[data-type="image"] { color: #008000; font-weight: bold; }
+    .ref-tag[data-type="video"] { color: #000080; font-weight: bold; }
+    .ref-tag[data-type="audio"] { color: #800000; font-weight: bold; }
+
+    /* @ Dropdown */
+    .ref-dropdown {
+      position: absolute;
+      left: 0; right: 0;
+      bottom: 100%;
+      max-height: 160px;
+      overflow-y: auto;
+      background: white;
+      border: 2px outset #dfdfdf;
+      box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+      z-index: 50;
+    }
+    .ref-dropdown-item {
+      padding: 3px 8px;
+      font-size: 11px;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ref-dropdown-item:hover,
+    .ref-dropdown-item.active {
+      background: #000080;
+      color: white;
+    }
+    .ref-dropdown-empty {
+      padding: 6px 8px;
+      font-size: 11px;
+      color: #808080;
+      font-style: italic;
+    }
+
+    /* Reference Preview Modal */
+    .ref-preview-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+      padding: 20px;
+    }
+    .ref-preview-window {
+      max-width: 500px;
+      width: 100%;
+      max-height: 80vh;
+    }
+    .ref-preview-body {
+      padding: 8px;
+      text-align: center;
+    }
+    .ref-preview-body img,
+    .ref-preview-body video {
+      max-width: 100%;
+      max-height: 50vh;
+      border: 2px inset;
+      background: #000;
+      object-fit: contain;
+    }
+    .ref-preview-body audio {
+      width: 100%;
+      margin: 10px 0;
+    }
+
+    /* 文件列表标签可点击插入 */
+    .file-tag.insertable {
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" v-cloak>
+    <!-- Config Window -->
+    <div class="window">
+      <div class="title-bar">
+        <div class="title-bar-text">⚙️ Configuration.exe</div>
+      </div>
+      <div class="window-body">
+        <div class="field-row">
+          <label for="apiUrl">API Base URL:</label>
+          <input id="apiUrl" type="text" v-model="config.apiUrl" placeholder="http://localhost:5100">
+        </div>
+        <div class="field-row">
+          <label for="sessionToken">Session ID:</label>
+          <input id="sessionToken" type="text" v-model="config.sessionToken" placeholder="[ProxyURL@][RegionPrefix-]session_id">
+        </div>
+        <div class="field-row">
+          <label for="pollInterval">Poll (sec):</label>
+          <select id="pollInterval" v-model.number="config.pollInterval" style="min-width: 80px; flex: 0;">
+            <option :value="3">3s</option>
+            <option :value="5">5s (Default)</option>
+            <option :value="10">10s</option>
+            <option :value="15">15s</option>
+            <option :value="30">30s</option>
+          </select>
+        </div>
+        <div class="field-row" style="justify-content: space-between;">
+          <button @click="queryCredits" :disabled="!isConfigValid || creditLoading">
+            {{ creditLoading ? 'Querying...' : '💰 Query Credits' }}
+          </button>
+          <span v-if="creditInfo" style="font-size: 12px;">
+            Total: <b>{{ creditInfo.totalCredit }}</b>
+            (🎁{{ creditInfo.giftCredit }} 💳{{ creditInfo.purchaseCredit }} 👑{{ creditInfo.vipCredit }})
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Workspace Window -->
+    <div class="window">
+      <div class="title-bar">
+        <div class="title-bar-text">🎨 Jimeng Async Studio</div>
+        <div class="title-bar-controls">
+          <button aria-label="Minimize"></button>
+          <button aria-label="Maximize"></button>
+          <button aria-label="Close"></button>
+        </div>
+      </div>
+      <div class="window-body" style="padding: 0;">
+        <!-- Tabs -->
+        <menu role="tablist">
+          <li role="tab" :aria-selected="activeTab === 'image'" @click="activeTab = 'image'"><a href="#image">🖼️ Txt2Img</a></li>
+          <li role="tab" :aria-selected="activeTab === 'video'" @click="activeTab = 'video'"><a href="#video">🎬 Video</a></li>
+          <li role="tab" :aria-selected="activeTab === 'tasks'" @click="activeTab = 'tasks'"><a href="#tasks">📋 Tasks ({{ stats.total }})</a></li>
+        </menu>
+
+        <!-- Image Generation Tab -->
+        <article class="tab-content" v-show="activeTab === 'image'">
+          <div class="field-row">
+            <label>Model:</label>
+            <select v-model="imageForm.model">
+              <option value="jimeng-5.0">jimeng-5.0</option>
+              <option value="jimeng-4.5">jimeng-4.5</option>
+              <option value="jimeng-4.6">jimeng-4.6</option>
+              <option value="jimeng-4.1">jimeng-4.1</option>
+              <option value="jimeng-4.0">jimeng-4.0</option>
+              <option value="jimeng-3.0">jimeng-3.0</option>
+            </select>
+          </div>
+          <div class="field-row">
+            <label>Ratio:</label>
+            <select v-model="imageForm.ratio">
+              <option value="1:1">1:1</option>
+              <option value="4:3">4:3</option>
+              <option value="3:4">3:4</option>
+              <option value="16:9">16:9</option>
+              <option value="9:16">9:16</option>
+              <option value="21:9">21:9</option>
+            </select>
+          </div>
+          <div class="field-row">
+            <label>Resolution:</label>
+            <select v-model="imageForm.resolution">
+              <option value="1k">1k</option>
+              <option value="2k">2k</option>
+              <option value="4k">4k</option>
+            </select>
+          </div>
+          <fieldset style="margin-bottom: 8px;">
+            <legend>📎 Reference Images (Optional)</legend>
+            <div class="field-row">
+              <label>Images (≤10):</label>
+              <span style="flex:1;"></span>
+              <button @click="$refs.imgRefInput.click()">Browse...</button>
+              <input type="file" ref="imgRefInput" accept="image/*" multiple @change="onImageRefFiles($event)" style="display:none;">
+            </div>
+            <div class="file-list" v-if="imageForm.refImages.length">
+              <div v-for="(f, i) in imageForm.refImages" :key="i" class="file-tag">
+                <span class="file-name">&#128444;&#65039; {{ f.name }}</span>
+                <div class="tag-actions">
+                  <button @click.prevent="removeImageRef(i)">&times;</button>
+                </div>
+              </div>
+            </div>
+            <p style="font-size:10px; color:#808080; margin-top:5px; margin-bottom: 2px;">
+              💡 Upload reference images to switch to Img2Img (composition) mode.
+            </p>
+          </fieldset>
+          <div class="field-row" style="align-items: flex-start;">
+            <label>Prompt:</label>
+            <textarea v-model="imageForm.prompt" placeholder="Enter image description..."></textarea>
+          </div>
+          <button class="btn-block" @click="submitImageTask" :disabled="!isConfigValid || !imageForm.prompt || submitting">
+            {{ submitting ? 'Submitting...' : (imageForm.refImages.length > 0 ? 'Img2Img Compose' : 'Generate Image') }}
+          </button>
+        </article>
+
+        <!-- Video Generation Tab -->
+        <article class="tab-content" v-show="activeTab === 'video'">
+          <div class="field-row">
+            <label>Model:</label>
+            <select v-model="videoForm.model">
+              <option value="jimeng-video-seedance-2.0-fast">seedance-2.0-fast ⚡</option>
+              <option value="jimeng-video-seedance-2.0">jimeng-video-seedance-2.0</option>
+              <option value="jimeng-video-3.5-pro">jimeng-video-3.5-pro</option>
+              <option value="jimeng-video-3.0">jimeng-video-3.0</option>
+              <option value="jimeng-video-veo3.1">jimeng-video-veo3.1</option>
+              <option value="jimeng-video-sora2">jimeng-video-sora2</option>
+            </select>
+          </div>
+          <div class="field-row">
+            <label>Ratio:</label>
+            <select v-model="videoForm.ratio">
+              <option value="16:9">16:9</option>
+              <option value="9:16">9:16</option>
+              <option value="1:1">1:1</option>
+              <option value="4:3">4:3</option>
+              <option value="3:4">3:4</option>
+            </select>
+          </div>
+          <div class="field-row">
+            <label>Duration (s):</label>
+            <select v-model.number="videoForm.duration">
+              <option value="4">4s</option>
+              <option value="5">5s (Default)</option>
+              <option value="8">8s</option>
+              <option value="10">10s</option>
+              <option value="12">12s</option>
+              <option value="15">15s</option>
+            </select>
+          </div>
+
+          <fieldset style="margin-bottom: 8px;">
+            <legend>📎 Reference Files (Optional)</legend>
+            <div class="field-row">
+              <select v-model="videoForm.functionMode" :disabled="!videoForm.model.includes('seedance')">
+                <option value="first_last_frames">Standard (Image &rarr; Video)</option>
+                <option value="omni_reference" v-if="videoForm.model.includes('seedance')">Omni Reference &starf;</option>
+              </select>
+            </div>
+
+            <div v-if="videoForm.functionMode === 'first_last_frames'">
+              <div class="field-row">
+                <label>Images (&le;2):</label>
+                <span style="flex:1;"></span>
+                <button @click="$refs.stdImgInput.click()">Browse...</button>
+                <input type="file" ref="stdImgInput" accept="image/*" multiple @change="onStandardFiles($event)" style="display:none;">
+              </div>
+              <div class="file-list" v-if="videoForm.standardFiles.length">
+                <div v-for="(f, i) in videoForm.standardFiles" :key="i" class="file-tag">
+                  <span class="file-name">&#128444;&#65039; {{ f.name }}</span>
+                  <div class="tag-actions">
+                    <button @click.prevent="removeStandardFile(i)">&times;</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="videoForm.functionMode === 'omni_reference'">
+              <div class="field-row">
+                <label>Images (&le;9):</label>
+                <span style="flex:1;"></span>
+                <button @click="$refs.omniImgInput.click()">Browse...</button>
+                <input type="file" ref="omniImgInput" accept="image/*" multiple @change="onOmniImages($event)" style="display:none;">
+              </div>
+              <div class="file-list" v-if="videoForm.omniImages.length">
+                <div v-for="(f, i) in videoForm.omniImages" :key="i" class="file-tag insertable" @click="insertRefToEditor('image_file_' + (i+1))" title="Click to insert @reference">
+                  <span class="file-name">&#128444;&#65039; @image_file_{{ i+1 }}: {{ f.name }}</span>
+                  <div class="tag-actions">
+                    <button @click.stop="previewLocalFile(f)" title="Preview">👁</button>
+                    <button @click.stop="removeOmniImage(i)">&times;</button>
+                  </div>
+                </div>
+              </div>
+              <div class="field-row" style="margin-top: 5px;">
+                <label>Videos (&le;3):</label>
+                <span style="flex:1;"></span>
+                <button @click="$refs.omniVidInput.click()">Browse...</button>
+                <input type="file" ref="omniVidInput" accept="video/*" multiple @change="onOmniVideos($event)" style="display:none;">
+              </div>
+              <div class="file-list" v-if="videoForm.omniVideos.length">
+                <div v-for="(f, i) in videoForm.omniVideos" :key="i" class="file-tag insertable" @click="insertRefToEditor('video_file_' + (i+1))" title="Click to insert @reference">
+                  <span class="file-name">&#127916; @video_file_{{ i+1 }}: {{ f.name }}</span>
+                  <div class="tag-actions">
+                    <button @click.stop="previewLocalFile(f)" title="Preview">👁</button>
+                    <button @click.stop="removeOmniVideo(i)">&times;</button>
+                  </div>
+                </div>
+              </div>
+              <div class="field-row" style="margin-top: 5px;">
+                <label>Audios (&le;3):</label>
+                <span style="flex:1;"></span>
+                <button @click="$refs.omniAudInput.click()">Browse...</button>
+                <input type="file" ref="omniAudInput" accept="audio/*" multiple @change="onOmniAudios($event)" style="display:none;">
+              </div>
+              <div class="file-list" v-if="videoForm.omniAudios.length">
+                <div v-for="(f, i) in videoForm.omniAudios" :key="i" class="file-tag insertable" @click="insertRefToEditor('audio_file_' + (i+1))" title="Click to insert @reference">
+                  <span class="file-name">&#128266; @audio_file_{{ i+1 }}: {{ f.name }}</span>
+                  <div class="tag-actions">
+                    <button @click.stop="previewLocalFile(f)" title="Preview">👁</button>
+                    <button @click.stop="removeOmniAudios(i)">&times;</button>
+                  </div>
+                </div>
+              </div>
+              <p style="font-size:10px; color:#808080; margin-top:5px; margin-bottom: 2px;">
+                💡 Click a file tag or type <b>@</b> in prompt to insert reference.
+              </p>
+            </div>
+          </fieldset>
+
+          <div class="field-row" style="align-items: flex-start;">
+            <label>Prompt:</label>
+            <!-- Omni mode: Rich prompt editor -->
+            <div v-if="videoForm.functionMode === 'omni_reference'" class="prompt-editor-wrapper">
+              <div ref="promptEditor" 
+                   class="prompt-editor" 
+                   contenteditable="true"
+                   data-placeholder="Type text, use @ to insert references..."
+                   @input="onEditorInput"
+                   @keydown="onEditorKeydown"
+                   @click="onEditorClick"
+                   @paste="onEditorPaste"></div>
+              <!-- @ Autocomplete dropdown -->
+              <div class="ref-dropdown" v-if="showRefDropdown">
+                <div v-if="filteredMaterials.length === 0" class="ref-dropdown-empty">
+                  No materials uploaded yet.
+                </div>
+                <div v-for="(item, idx) in filteredMaterials" 
+                     :key="item.field"
+                     class="ref-dropdown-item"
+                     :class="{ active: refDropdownIndex === idx }"
+ @mousedown.prevent="insertRefFromDropdown(item)">
+                  {{ item.icon }} {{ item.field }}: {{ item.displayName }}
+                </div>
+              </div>
+            </div>
+            <!-- Other modes: plain textarea -->
+            <textarea v-else v-model="videoForm.prompt" placeholder="Enter video description..."></textarea>
+          </div>
+          <button class="btn-block" @click="submitVideoTask" 
+            :disabled="!isConfigValid || (videoForm.functionMode === 'omni_reference' ? !editorHasContent : !videoForm.prompt) || submitting">
+            {{ submitting ? 'Submitting...' : 'Generate Video' }}
+          </button>
+        </article>
+
+        <!-- Task Manager Tab -->
+        <article class="tab-content" v-show="activeTab === 'tasks'">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+            <span>
+              Auto-refresh: 
+              <span :style="{color: isPolling ? 'green' : 'gray'}">{{ isPolling ? 'ON' : 'OFF' }}</span>
+            </span>
+            <div style="display: flex; gap: 5px;">
+              <button @click="fetchTasks" :disabled="fetching">Refresh Now</button>
+              <button @click="togglePolling">{{ isPolling ? 'Stop Polling' : 'Start Polling' }}</button>
+            </div>
+          </div>
+          
+          <div class="task-list">
+            <div v-if="tasks.length === 0" style="padding: 10px; color: gray; text-align: center;">
+              No tasks found. Submit a task to see it here.
+            </div>
+            
+            <div v-for="task in tasks" :key="task.task_id" 
+                 class="task-item" 
+                 :class="{ selected: selectedTaskId === task.task_id }"
+                 @click="selectedTaskId = task.task_id">
+              <div class="task-header">
+                <span>[{{ formatType(task.type) }}] {{ formatTime(task.created_at) }} <span v-if="getElapsed(task)">({{ getElapsed(task) }})</span></span>
+                <span :class="'status-' + task.status">{{ task.status.toUpperCase() }}</span>
+              </div>
+              <div class="task-info">
+                Prompt: {{ getTaskPrompt(task) }}
+              </div>
+              <div class="progress-container" v-if="task.status === 'processing' || task.status === 'pending'">
+                <div class="progress-bar" :style="{ width: getFakeProgress(task) + '%' }"></div>
+                <div class="progress-text">{{ getFakeProgress(task) }}%</div>
+              </div>
+            </div>
+          </div>
+
+          <fieldset v-if="selectedTaskObj" style="margin-top: 10px;">
+            <legend>Task Details</legend>
+            <div style="font-size: 11px;">
+              <p style="margin: 2px 0;"><strong>ID:</strong> {{ selectedTaskObj.task_id }}</p>
+              <p style="margin: 2px 0;"><strong>Prompt:</strong> {{ selectedTaskObj.params?.prompt || 'N/A' }}</p>
+              <p style="margin: 2px 0;"><strong>Created:</strong> {{ formatDate(selectedTaskObj.created_at) }}</p>
+              <p style="margin: 2px 0;" v-if="getElapsed(selectedTaskObj)"><strong>Elapsed:</strong> {{ getElapsed(selectedTaskObj) }}</p>
+              <p style="margin: 2px 0;" v-if="selectedTaskObj.error">
+                <strong>Error:</strong> <span class="error-text">{{ selectedTaskObj.error }}</span>
+              </p>
+              <div v-if="selectedRefFiles && selectedRefFiles.length" style="margin-top: 6px;">
+                <strong>References:</strong>
+                <div class="file-list" style="margin-top: 3px;">
+                  <div v-for="rf in selectedRefFiles" :key="rf.fieldName" class="file-tag">
+                    <span class="file-name">
+                      {{ rf.type.startsWith('image') ? '&#128444;&#65039;' : rf.type.startsWith('video') ? '&#127916;' : '&#128266;' }}
+                      {{ rf.fieldName }}: {{ rf.name }}
+                    </span>
+                    <div class="tag-actions">
+                      <button v-if="rf.previewUrl" @click="openRefPreview(rf.previewUrl, rf.name, rf.type.startsWith('image') ? 'image' : rf.type.startsWith('video') ? 'video' : 'audio')" title="Preview">👁</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div style="margin-top: 5px; display: flex; gap: 5px;">
+                <button v-if="selectedTaskObj.status === 'completed'" @click="viewResult(selectedTaskObj)">View Result</button>
+                <button @click="deleteTask(selectedTaskObj.task_id)" style="color: #800000;">Delete Record</button>
+              </div>
+            </div>
+          </fieldset>
+          
+          <div class="stats-bar">
+            <span>Total: {{ stats.total }}</span>
+            <span>| <span class="status-pending">Pending:</span> {{ stats.pending }}</span>
+            <span>| <span class="status-processing">Processing:</span> {{ stats.processing }}</span>
+            <span>| <span class="status-completed">Completed:</span> {{ stats.completed }}</span>
+            <span>| <span class="status-failed">Failed:</span> {{ stats.failed }}</span>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <!-- Reference Preview Modal -->
+    <div class="ref-preview-overlay" v-if="refPreview.show" @click.self="closeRefPreview">
+      <div class="window ref-preview-window">
+        <div class="title-bar">
+          <div class="title-bar-text">📎 Preview - {{ refPreview.name }}</div>
+          <div class="title-bar-controls">
+            <button aria-label="Close" @click="closeRefPreview"></button>
+          </div>
+        </div>
+        <div class="window-body ref-preview-body">
+          <img v-if="refPreview.mediaType === 'image'" :src="refPreview.url">
+          <video v-else-if="refPreview.mediaType === 'video'" :src="refPreview.url" controls autoplay></video>
+          <audio v-else-if="refPreview.mediaType === 'audio'" :src="refPreview.url" controls autoplay></audio>
+          <p v-else style="color: #808080;">Preview not available</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div class="modal-overlay" v-if="errorMsg">
+      <div class="window" style="width: 300px;">
+        <div class="title-bar">
+          <div class="title-bar-text">Error</div>
+          <div class="title-bar-controls">
+            <button aria-label="Close" @click="errorMsg = ''"></button>
+          </div>
+        </div>
+        <div class="window-body">
+          <p class="error-text" style="text-align: center; margin: 15px 0;">{{ errorMsg }}</p>
+          <div style="display: flex; justify-content: center; margin-top: 15px;">
+            <button @click="errorMsg = ''">OK</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div class="modal-overlay" v-if="resultModal.show" @click.self="resultModal.show = false">
+      <div class="window modal-window" @click.stop>
+        <div class="title-bar">
+          <div class="title-bar-text">Media Viewer.exe - {{ resultModal.task?.task_id.substring(0,8) }}</div>
+          <div class="title-bar-controls">
+            <button aria-label="Close" @click="resultModal.show = false"></button>
+          </div>
+        </div>
+        <div class="window-body modal-body">
+          
+          <div style="position: relative; min-height: 250px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+            <div class="loading-overlay" v-if="resultModal.loading">
+              <p style="margin-bottom: 5px;">Loading Media...</p>
+              <div class="win-progress-bar">
+                <div class="win-progress-chunk" v-for="n in 15" :key="n" v-show="loadingProgress >= n * (100/15)"></div>
+              </div>
+            </div>
+
+            <div v-if="resultModal.urls.length > 0" :style="{visibility: resultModal.loading ? 'hidden' : 'visible', width: '100%'}">
+              <template v-if="resultModal.type.includes('video')">
+                <video :src="resultModal.urls[0]" controls autoplay loop class="preview-media" 
+                       @loadeddata="onMediaLoaded" @error="onMediaLoaded"></video>
+              </template>
+              <template v-else>
+                <img :src="resultModal.urls[resultModal.currentIndex]" class="preview-media" 
+                     @load="onMediaLoaded" @error="onMediaLoaded">
+              </template>
+            </div>
+            <div v-else-if="!resultModal.loading">
+              No valid media URLs found.
+            </div>
+          </div>
+          
+          <div v-if="resultModal.urls.length > 1" style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 10px;">
+            <button :disabled="resultModal.currentIndex === 0" @click="resultModal.currentIndex--">&lt; Prev</button>
+            <span>{{ resultModal.currentIndex + 1 }} / {{ resultModal.urls.length }}</span>
+            <button :disabled="resultModal.currentIndex === resultModal.urls.length - 1" @click="resultModal.currentIndex++">Next &gt;</button>
+          </div>
+
+          <div style="display: flex; justify-content: center; gap: 10px; margin-top: 15px;">
+            <button @click="copyUrl" v-if="resultModal.urls.length > 0">Copy URL</button>
+            <button @click="openOriginal" v-if="resultModal.urls.length > 0">Open Original</button>
+            <button @click="resultModal.show = false">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { createApp, ref, reactive, computed, onMounted, onUnmounted, watch } = Vue;
+
+    // ===== IndexedDB Media Cache =====
+    const MediaCache = (() => {
+      const DB_NAME = 'jm_media_cache';
+      const DB_VERSION = 2;
+      const STORE_NAME = 'blobs';
+      const REF_STORE_NAME = 'ref_media';
+
+      function openDB() {
+        return new Promise((resolve, reject) => {
+          const req = indexedDB.open(DB_NAME, DB_VERSION);
+          req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+              db.createObjectStore(STORE_NAME, { keyPath: 'url' });
+            }
+            if (!db.objectStoreNames.contains(REF_STORE_NAME)) {
+              db.createObjectStore(REF_STORE_NAME, { keyPath: 'key' });
+            }
+          };
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      }
+
+      return {
+        async put(url, blob, meta = {}) {
+          const db = await openDB();
+          return new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            tx.objectStore(STORE_NAME).put({ url, blob, ...meta, cachedAt: Date.now() });
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+          });
+        },
+        async get(url) {
+          const db = await openDB();
+          return new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readonly');
+            const req = tx.objectStore(STORE_NAME).get(url);
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror = () => reject(req.error);
+          });
+
+        },
+        async getObjectURL(url) {
+          const entry = await this.get(url);
+          if (entry && entry.blob) return URL.createObjectURL(entry.blob);
+          return null;
+        },
+        async cacheFromURL(url) {
+          try {
+            if (await this.get(url)) return;
+            const resp = await fetch(url);
+            if (!resp.ok) return;
+            const blob = await resp.blob();
+            await this.put(url, blob, { type: blob.type, size: blob.size });
+          } catch (e) {
+            console.warn('MediaCache: failed to cache', url, e);
+          }
+        },
+        async putRef(taskId, files) {
+          try {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+              const tx = db.transaction(REF_STORE_NAME, 'readwrite');
+              tx.objectStore(REF_STORE_NAME).put({
+                key: taskId,
+                files: files,
+                cachedAt: Date.now()
+              });
+              tx.oncomplete = () => resolve();
+              tx.onerror = () => reject(tx.error);
+            });
+          } catch (e) {
+            console.warn('Failed to put ref to cache', e);
+          }
+        },
+        async getRef(taskId) {
+          try {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+              const tx = db.transaction(REF_STORE_NAME, 'readonly');
+              const req = tx.objectStore(REF_STORE_NAME).get(taskId);
+              req.onsuccess = () => resolve(req.result);
+              req.onerror = () => reject(req.error);
+            });
+          } catch (e) {
+            return null;
+          }
+        },
+        async removeRef(taskId) {
+          try {
+            const db = await openDB();
+            const tx = db.transaction(REF_STORE_NAME, 'readwrite');
+            tx.objectStore(REF_STORE_NAME).delete(taskId);
+          } catch (e) {}
+        },
+        async remove(url) {
+          const db = await openDB();
+          return new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            tx.objectStore(STORE_NAME).delete(url);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+          });
+        }
+      };
+    })();
+
+    createApp({
+      setup() {
+        // State
+        const config = reactive({
+          apiUrl: 'http://localhost:5100',
+          sessionToken: '',
+          pollInterval: 5
+        });
+        
+        const activeTab = ref('image');
+        const submitting = ref(false);
+        const fetching = ref(false);
+        const isPolling = ref(false);
+        const errorMsg = ref('');
+        let pollInterval = null;
+        const currentTime = ref(Math.floor(Date.now() / 1000));
+        const loadingProgress = ref(0);
+        let loadingInterval = null;
+
+        // Forms
+        const imageForm = reactive({
+          model: 'jimeng-5.0',
+          ratio: '1:1',
+          resolution: '2k',
+          prompt: '',
+          refImages: []
+        });
+
+        const videoForm = reactive({
+          model: 'jimeng-video-seedance-2.0-fast',
+          ratio: '16:9',
+          duration: 5,
+          prompt: '',
+          functionMode: 'first_last_frames',
+          standardFiles: [],
+          omniImages: [],
+          omniVideos: [],
+          omniAudios: []
+        });
+
+        // Tasks
+        const tasks = ref(JSON.parse(localStorage.getItem('jm_local_tasks') || '[]'));
+        const stats = ref({ total: 0, pending: 0, processing: 0, completed: 0, failed: 0 });
+        const selectedTaskId = ref(null);
+        const selectedRefFiles = ref([]);
+        // Rich editor state
+        const showRefDropdown = ref(false);
+        const refDropdownIndex = ref(0);
+        const refFilterText = ref('');
+        const editorHasContent = ref(false);
+        const promptEditor = ref(null);
+
+        // Preview state
+        const refPreview = reactive({
+          show: false,
+          url: '',
+          name: '',
+          mediaType: '' // 'image' | 'video' | 'audio'
+        });
+
+        
+        // Modal
+        const resultModal = reactive({
+          show: false,
+          task: null,
+          type: '',
+          urls: [],
+          _originalUrls: [],
+          currentIndex: 0,
+          loading: false
+        });
+
+        const availableMaterials = computed(() => {
+          const list = [];
+          videoForm.omniImages.forEach((f, i) => {
+            list.push({ field: `image_file_${i+1}`, type: 'image', icon: '🖼️', displayName: f.name, file: f });
+          });
+          videoForm.omniVideos.forEach((f, i) => {
+            list.push({ field: `video_file_${i+1}`, type: 'video', icon: '🎬', displayName: f.name, file: f });
+          });
+          videoForm.omniAudios.forEach((f, i) => {
+            list.push({ field: `audio_file_${i+1}`, type: 'audio', icon: '🔊', displayName: f.name, file: f });
+          });
+          return list;
+        });
+
+        const filteredMaterials = computed(() => {
+          const filter = refFilterText.value.toLowerCase();
+          if (!filter) return availableMaterials.value;
+          return availableMaterials.value.filter(m => 
+            m.field.toLowerCase().includes(filter) || 
+            m.displayName.toLowerCase().includes(filter)
+          );
+        });
+
+        // Computed
+        const isConfigValid = computed(() => {
+          return config.apiUrl.trim() !== '' && config.sessionToken.trim() !== '';
+        });
+
+        const selectedTaskObj = computed(() => {
+          if (!selectedTaskId.value) return null;
+          return tasks.value.find(t => t.task_id === selectedTaskId.value) || null;
+        });
+
+        // Axios helper
+        const getApi = () => {
+          return axios.create({
+            baseURL: config.apiUrl.trim().replace(/\/$/, ''),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${config.sessionToken.trim()}`
+            }
+          });
+        };
+
+        const showError = (msg) => {
+          errorMsg.value = msg;
+        };
+
+        // File Handlers
+        const onImageRefFiles = (e) => {
+          const files = Array.from(e.target.files);
+          imageForm.refImages.push(...files.slice(0, Math.max(0, 10 - imageForm.refImages.length)));
+          e.target.value = '';
+        };
+        const removeImageRef = (i) => imageForm.refImages.splice(i, 1);
+
+        const onStandardFiles = (e) => {
+          const files = Array.from(e.target.files);
+          videoForm.standardFiles = files.slice(0, 2);
+          e.target.value = '';
+        };
+        const removeStandardFile = (i) => videoForm.standardFiles.splice(i, 1);
+
+        const onOmniImages = (e) => {
+          const files = Array.from(e.target.files);
+          videoForm.omniImages.push(...files.slice(0, Math.max(0, 9 - videoForm.omniImages.length)));
+          e.target.value = '';
+        };
+        const removeOmniImage = (i) => videoForm.omniImages.splice(i, 1);
+
+        const onOmniVideos = (e) => {
+          const files = Array.from(e.target.files);
+          videoForm.omniVideos.push(...files.slice(0, Math.max(0, 3 - videoForm.omniVideos.length)));
+          e.target.value = '';
+        };
+        const removeOmniVideo = (i) => videoForm.omniVideos.splice(i, 1);
+
+        const onOmniAudios = (e) => {
+          const files = Array.from(e.target.files);
+          const maxFiles = 3 - videoForm.omniAudios.length;
+          const validFiles = files.slice(0, Math.max(0, maxFiles)).filter(f => {
+            if (f.size > 15 * 1024 * 1024) { showError(`Audio file "${f.name}" exceeds 15MB limit.`); return false; }
+            return true;
+          });
+          videoForm.omniAudios.push(...validFiles);
+          e.target.value = '';
+        };
+        const removeOmniAudios = (i) => videoForm.omniAudios.splice(i, 1);
+
+        // Rich Editor Methods
+        function createRefTagHTML(field, type, icon) {
+          return `<span contenteditable="false" class="ref-tag" data-field="${field}" data-type="${type}">${icon} @${field}</span>\u200B`;
+        }
+
+        function extractPromptFromEditor() {
+          const editor = promptEditor.value;
+          if (!editor) return '';
+          let result = '';
+          function walk(node) {
+            if (node.nodeType === Node.TEXT_NODE) {
+              result += node.textContent.replace(/\u200B/g, '');
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+              if (node.classList?.contains('ref-tag')) {
+                result += '@' + node.getAttribute('data-field');
+              } else if (node.tagName === 'BR') {
+                result += '\n';
+              } else {
+                node.childNodes.forEach(walk);
+              }
+            }
+          }
+          editor.childNodes.forEach(walk);
+          return result.trim();
+        }
+
+        function syncEditorToPrompt() {
+          videoForm.prompt = extractPromptFromEditor();
+          editorHasContent.value = videoForm.prompt.length > 0;
+        }
+
+        function onEditorInput(e) {
+          syncEditorToPrompt();
+          detectAtSymbol();
+        }
+
+        function detectAtSymbol() {
+          const sel = window.getSelection();
+          if (!sel.rangeCount) { showRefDropdown.value = false; return; }
+          const range = sel.getRangeAt(0);
+          const node = range.startContainer;
+          if (node.nodeType !== Node.TEXT_NODE) { showRefDropdown.value = false; return; }
+          
+          const text = node.textContent.substring(0, range.startOffset);
+          const atIdx = text.lastIndexOf('@');
+          if (atIdx === -1) { showRefDropdown.value = false; return; }
+          
+          const filterStr = text.substring(atIdx + 1);
+          if (/\s/.test(filterStr)) { showRefDropdown.value = false; return; }
+          
+          refFilterText.value = filterStr;
+          refDropdownIndex.value = 0;
+          showRefDropdown.value = true;
+        }
+
+        function onEditorKeydown(e) {
+          if (showRefDropdown.value) {
+            const items = filteredMaterials.value;
+            if (e.key === 'ArrowDown') {
+              e.preventDefault();
+              refDropdownIndex.value = Math.min(refDropdownIndex.value + 1, items.length - 1);
+            } else if (e.key === 'ArrowUp') {
+              e.preventDefault();
+              refDropdownIndex.value = Math.max(refDropdownIndex.value - 1, 0);
+            } else if (e.key === 'Enter' || e.key === 'Tab') {
+              e.preventDefault();
+              if (items.length > 0) {
+                insertRefFromDropdown(items[refDropdownIndex.value]);
+              }
+            } else if (e.key === 'Escape') {
+              e.preventDefault();
+              showRefDropdown.value = false;
+            }
+          }
+        }
+
+        function insertRefFromDropdown(item) {
+          showRefDropdown.value = false;
+          const sel = window.getSelection();
+          if (!sel.rangeCount) return;
+          
+          const range = sel.getRangeAt(0);
+          const node = range.startContainer;
+          if (node.nodeType !== Node.TEXT_NODE) return;
+          
+          const text = node.textContent;
+          const cursorPos = range.startOffset;
+          const atIdx = text.lastIndexOf('@', cursorPos - 1);
+          if (atIdx === -1) return;
+          
+          const before = text.substring(0, atIdx);
+          const after = text.substring(cursorPos);
+          node.textContent = before;
+          
+          const tagSpan = document.createElement('span');
+          tagSpan.contentEditable = 'false';
+          tagSpan.className = 'ref-tag';
+  tagSpan.dataset.field = item.field;
+          tagSpan.dataset.type = item.type;
+          tagSpan.textContent = `${item.icon} @${item.field}`;
+          
+          const afterNode = document.createTextNode('\u200B' + after);
+          const parent = node.parentNode;
+          parent.insertBefore(tagSpan, node.nextSibling);
+          parent.insertBefore(afterNode, tagSpan.nextSibling);
+          
+          const newRange = document.createRange();
+          newRange.setStart(afterNode, 1);
+          newRange.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(newRange);
+          
+          syncEditorToPrompt();
+        }
+
+        function insertRefToEditor(fieldName) {
+          const item = availableMaterials.value.find(m => m.field === fieldName);
+          if (!item) return;
+          
+          const editor = promptEditor.value;
+          if (!editor) return;
+          
+          const tagHTML = createRefTagHTML(item.field, item.type, item.icon);
+          editor.innerHTML += tagHTML;
+          
+          const sel = window.getSelection();
+          const range = document.createRange();
+          range.selectNodeContents(editor);
+          range.collapse(false);
+          sel.removeAllRanges();
+          sel.addRange(range);
+          
+          editor.focus();
+          syncEditorToPrompt();
+        }
+
+        function onEditorClick(e) {
+          const tag = e.target.closest?.('.ref-tag');
+          if (tag) {
+            const fieldName = tag.dataset.field;
+            const item = availableMaterials.value.find(m => m.field === fieldName);
+            if (item?.file) {
+              showFilePreview(item.file, item.type, item.displayName);
+            }
+          }
+        }
+
+        function onEditorPaste(e) {
+          e.preventDefault();
+          const text = e.clipboardData.getData('text/plain');
+          document.execCommand('insertText', false, text);
+        }
+
+        // Preview Methods
+        function showFilePreview(file, type, name) {
+          if (refPreview.url && refPreview.url.startsWith('blob:')) {
+            URL.revokeObjectURL(refPreview.url);
+          }
+          refPreview.url = URL.createObjectURL(file);
+          refPreview.name = name || file.name;
+          refPreview.mediaType = type;
+          refPreview.show = true;
+        }
+
+        function closeRefPreview() {
+          if (refPreview.url && refPreview.url.startsWith('blob:')) {
+            URL.revokeObjectURL(refPreview.url);
+          }
+          refPreview.show = false;
+          refPreview.url = '';
+        }
+
+        function previewLocalFile(file) {
+          let type = 'image';
+          if (file.type.startsWith('video/')) type = 'video';
+          else if (file.type.startsWith('audio/')) type = 'audio';
+          showFilePreview(file, type, file.name);
+        }
+
+        // Methods
+        const submitImageTask = async () => {
+          if (!isConfigValid.value) return showError('Please configure API URL and Session Token first.');
+          submitting.value = true;
+          try {
+            const api = getApi();
+            let res;
+            const hasRefImages = imageForm.refImages.length > 0;
+
+            if (hasRefImages) {
+              // Img2Img: use compositions endpoint
+              const fd = new FormData();
+              fd.append('prompt', imageForm.prompt);
+              fd.append('model', imageForm.model);
+              fd.append('ratio', imageForm.ratio);
+              fd.append('resolution', imageForm.resolution);
+              imageForm.refImages.forEach(f => fd.append('images', f));
+              res = await api.post('/v1/async/images/compositions', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+            } else {
+              // Txt2Img: use generations endpoint
+              res = await api.post('/v1/async/images/generations', imageForm);
+            }
+
+            if (res.data && res.data.task_id) {
+              if (hasRefImages) {
+                const refFiles = imageForm.refImages.map((f, i) => ({ name: f.name, type: f.type, fieldName: `image_${i+1}`, blob: f }));
+                MediaCache.putRef(res.data.task_id, refFiles).catch(e => console.error(e));
+                imageForm.refImages = [];
+              }
+              activeTab.value = 'tasks';
+              fetchTasks();
+              if (!isPolling.value) togglePolling();
+              queryCredits();
+            }
+          } catch (err) {
+            showError('Submit failed: ' + (err.response?.data?.message || err.message));
+          } finally {
+            submitting.value = false;
+          }
+        };
+
+        const submitVideoTask = async () => {
+          if (!isConfigValid.value) return showError('Please configure API URL and Session Token first.');
+          if (videoForm.functionMode === 'omni_reference') {
+            syncEditorToPrompt(); // Ensure prompt is up to date
+          }
+          submitting.value = true;
+          try {
+            const api = getApi();
+            let res;
+            const hasFiles = videoForm.standardFiles.length > 0 || videoForm.omniImages.length > 0 || videoForm.omniVideos.length > 0 || videoForm.omniAudios.length > 0;
+
+            if (hasFiles) {
+              const fd = new FormData();
+              fd.append('prompt', videoForm.prompt);
+              fd.append('model', videoForm.model);
+              fd.append('ratio', videoForm.ratio);
+              fd.append('duration', String(videoForm.duration));
+              fd.append('functionMode', videoForm.functionMode);
+
+              if (videoForm.functionMode === 'first_last_frames') {
+                videoForm.standardFiles.forEach(f => fd.append('image', f));
+              } else {
+                videoForm.omniImages.forEach((f, i) => fd.append(`image_file_${i+1}`, f));
+                videoForm.omniVideos.forEach((f, i) => fd.append(`video_file_${i+1}`, f));
+                videoForm.omniAudios.forEach((f, i) => fd.append(`audio_file_${i+1}`, f));
+              }
+
+              res = await api.post('/v1/async/videos/generations', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+            } else {
+              const payload = { ...videoForm, duration: parseInt(videoForm.duration) };
+              res = await api.post('/v1/async/videos/generations', payload);
+            }
+            
+            if (res.data && res.data.task_id) {
+              if (hasFiles) {
+                 let refFiles = [];
+                 if (videoForm.functionMode === 'first_last_frames') {
+                     refFiles = videoForm.standardFiles.map((f, i) => ({ name: f.name, type: f.type, fieldName: `image_${i+1}`, blob: f }));
+                 } else {
+                     videoForm.omniImages.forEach((f, i) => refFiles.push({ name: f.name, type: f.type, fieldName: `image_file_${i+1}`, blob: f }));
+                     videoForm.omniVideos.forEach((f, i) => refFiles.push({ name: f.name, type: f.type, fieldName: `video_file_${i+1}`, blob: f }));
+                     videoForm.omniAudios.forEach((f, i) => refFiles.push({ name: f.name, type: f.type, fieldName: `audio_file_${i+1}`, blob: f }));
+                 }
+                 MediaCache.putRef(res.data.task_id, refFiles).catch(e => console.error(e));
+                 videoForm.standardFiles = [];
+                 videoForm.omniImages = [];
+                 videoForm.omniVideos = [];
+                 videoForm.omniAudios = [];
+                 if (promptEditor.value) { promptEditor.value.innerHTML = ''; syncEditorToPrompt(); }
+                 videoForm.prompt = '';
+              }
+              activeTab.value = 'tasks';
+              fetchTasks();
+              if (!isPolling.value) togglePolling();
+              queryCredits();
+            }
+          } catch (err) {
+            showError('Submit failed: ' + (err.response?.data?.message || err.message));
+          } finally {
+            submitting.value = false;
+          }
+        };
+
+        const fetchTasks = async () => {
+          if (!isConfigValid.value || fetching.value) return;
+          fetching.value = true;
+          try {
+            const api = getApi();
+            const res = await api.get('/v1/async/tasks');
+            if (res.data) {
+              const serverTasks = res.data.tasks || [];
+              
+              // Merge logic: Update existing tasks with server data, keep local-only tasks (history)
+              const taskMap = new Map(tasks.value.map(t => [t.task_id, t]));
+              serverTasks.forEach(st => {
+                const oldTask = taskMap.get(st.task_id);
+const wasNotComplete = !oldTask || oldTask.status !== 'completed';
+                taskMap.set(st.task_id, st);
+                if (wasNotComplete && st.status === 'completed' && st.result?.data) {
+                  st.result.data.forEach(item => { if (item.url) MediaCache.cacheFromURL(item.url); });
+                }
+              });
+              
+              // Convert back to array and sort by created_at desc
+              tasks.value = Array.from(taskMap.values()).sort((a, b) => b.created_at - a.created_at);
+              
+              updateStats();
+              
+              // Automatically stop polling if all tasks are done
+              if (isPolling.value && stats.value.pending === 0 && stats.value.processing === 0 && tasks.value.length > 0) {
+                togglePolling();
+              }
+            }
+          } catch (err) {
+            console.error('Fetch tasks failed', err);
+            if (isPolling.value) togglePolling();
+            showError('Fetch tasks failed: ' + (err.response?.data?.message || err.message));
+          } finally {
+            fetching.value = false;
+          }
+        };
+
+        const togglePolling = () => {
+          if (isPolling.value) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+            isPolling.value = false;
+          } else {
+            fetchTasks(); // fetch immediately
+            pollInterval = setInterval(fetchTasks, (config.pollInterval || 5) * 1000);
+            isPolling.value = true;
+          }
+        };
+
+        const updateStats = () => {
+          stats.value = {
+            total: tasks.value.length,
+            pending: tasks.value.filter(t => t.status === 'pending').length,
+            processing: tasks.value.filter(t => t.status === 'processing').length,
+            completed: tasks.value.filter(t => t.status === 'completed').length,
+            failed: tasks.value.filter(t => t.status === 'failed').length
+          };
+        };
+
+        const deleteTask = (taskId) => {
+          if (!confirm('Are you sure you want to delete this task record?')) return;
+          const task = tasks.value.find(t => t.task_id === taskId);
+          if (task && task.result?.data) {
+            task.result.data.forEach(item => {
+              if (item.url) MediaCache.remove(item.url);
+            });
+          }
+          MediaCache.removeRef(taskId);
+          tasks.value = tasks.value.filter(t => t.task_id !== taskId);
+          if (selectedTaskId.value === taskId) {
+            selectedTaskId.value = null;
+          }
+          updateStats();
+        };
+
+        const queryCredits = async () => {
+          if (!isConfigValid.value) return;
+          creditLoading.value = true;
+          try {
+            const api = getApi();
+            const res = await api.post('/token/points');
+            if (Array.isArray(res.data) && res.data.length > 0) {
+              if (res.data.length === 1) creditInfo.value = res.data[0].points;
+              else creditInfo.value = res.data.reduce((acc, item) => ({
+                giftCredit: acc.giftCredit + item.points.giftCredit,
+                purchaseCredit: acc.purchaseCredit + item.points.purchaseCredit,
+                vipCredit: acc.vipCredit + item.points.vipCredit,
+                totalCredit: acc.totalCredit + item.points.totalCredit,
+              }), { giftCredit: 0, purchaseCredit: 0, vipCredit: 0, totalCredit: 0 });
+            }
+          } catch (err) {
+            showError('Query credits failed: ' + (err.response?.data?.message || err.message));
+          } finally {
+            creditLoading.value = false;
+          }
+        };
+
+        const viewResult = async (task) => {
+          if (!task.result?.data) {
+            showError('No result data found.');
+            return;
+          }
+          const urls = task.result.data.map(item => item.url).filter(Boolean);
+          if (urls.length === 0) {
+            showError('No valid URLs found.');
+            return;
+          }
+          
+          resultModal.task = task;
+          resultModal.type = task.type;
+          resultModal._originalUrls = urls;
+          const resolvedUrls = await Promise.all(urls.map(async (url) => {
+            const localUrl = await MediaCache.getObjectURL(url);
+            return localUrl || url;
+          }));
+          resultModal.urls = resolvedUrls;
+          resultModal.currentIndex = 0;
+          resultModal.loading = false;
+          resultModal.show = true;
+          startLoading();
+        };
+
+        const startLoading = () => {
+          resultModal.loading = true;
+          loadingProgress.value = 0;
+          if (loadingInterval) clearInterval(loadingInterval);
+          loadingInterval = setInterval(() => {
+            if (loadingProgress.value < 90) loadingProgress.value += 10;
+          }, 150);
+        };
+
+        const onMediaLoaded = () => {
+          loadingProgress.value = 100;
+          setTimeout(() => {
+            resultModal.loading = false;
+            if (loadingInterval) clearInterval(loadingInterval);
+          }, 300);
+        };
+
+        watch(() => resultModal.currentIndex, () => {
+          if (resultModal.show) startLoading();
+        });
+
+        watch(() => resultModal.show, (val) => {
+          if (!val) {
+            resultModal.urls.forEach(u => { if (u.startsWith('blob:')) URL.revokeObjectURL(u); });
+          }
+        });
+
+        const copyUrl = () => {
+          const url = resultModal._originalUrls[resultModal.currentIndex];
+          navigator.clipboard.writeText(url).then(() => {
+            alert('URL copied to clipboard!');
+          }).catch(err => {
+            console.error('Copy failed: ', err);
+            prompt('Copy this URL:', url);
+          });
+        };
+
+        const openOriginal = () => {
+          const url = resultModal._originalUrls[resultModal.currentIndex];
+          window.open(url, '_blank');
+        };
+
+        const openRefPreview = (url, name, type) => {
+          if (refPreview.url && refPreview.url.startsWith('blob:')) {
+            URL.revokeObjectURL(refPreview.url);
+          }
+          refPreview.url = url;
+          refPreview.name = name || 'Reference';
+          refPreview.mediaType = type || 'image';
+          refPreview.show = true;
+        };
+
+        const revokeRefUrls = () => {
+          selectedRefFiles.value.forEach(rf => { if (rf.previewUrl) URL.revokeObjectURL(rf.previewUrl); });
+        };
+
+
+        const formatTime = (timestamp) => {
+          if (!timestamp) return '';
+          const date = new Date(timestamp * 1000);
+          return date.toLocaleTimeString();
+        };
+        
+        const formatDate = (timestamp) => {
+          if (!timestamp) return '';
+          const date = new Date(timestamp * 1000);
+          return date.toLocaleString();
+        };
+
+        const formatType = (type) => {
+          if (type === 'image_generation') return 'IMG';
+          if (type === 'image_composition') return 'I2I';
+          if (type === 'video_generation') return 'VID';
+          return type;
+        };
+
+        const getFakeProgress = (task) => {
+          const start = task.created_at;
+          const elapsed = currentTime.value - start;
+          if (elapsed <= 0) return '0.0';
+          const target = task.type.includes('video') ? 300 : 30; // 5 mins for video, 30s for image
+          let percent = (elapsed / target) * 99.9;
+          // Use whichever is higher: server progress or time-based estimate
+          const serverProgress = (task.progress > 0 && task.progress < 100) ? task.progress : 0;
+          percent = Math.max(percent, serverProgress);
+          if (percent >= 99.9) percent = 99.9;
+          return percent.toFixed(1);
+        };
+
+        const getElapsed = (task) => {
+          if (!task.created_at) return '';
+          const start = task.created_at;
+          let end;
+          if (task.status === 'completed' || task.status === 'failed') {
+            end = task.completed_at || task.updated_at || start;
+          } else {
+            end = currentTime.value;
+          }
+          const diff = Math.max(0, end - start);
+          if (diff < 60) return `${diff}s`;
+          const m = Math.floor(diff / 60);
+          const s = diff % 60;
+          if (m < 60) return `${m}m${s}s`;
+          return `${Math.floor(m / 60)}h${m % 60}m`;
+        };
+
+        const getTaskPrompt = (task) => {
+          if (!task.params) return 'N/A';
+          let prompt = task.params.prompt || '';
+          if (prompt.length > 50) prompt = prompt.substring(0, 50) + '...';
+          return prompt;
+        };
+
+        // Lifecycle
+        let timeInterval = null;
+        onMounted(() => {
+          // Load config
+          const savedUrl = localStorage.getItem('jm_api_url');
+          const savedToken = localStorage.getItem('jm_session_token');
+          const savedPoll = localStorage.getItem('jm_poll_interval');
+          if (savedUrl) config.apiUrl = savedUrl;
+          if (savedToken) config.sessionToken = savedToken;
+          if (savedPoll) config.pollInterval = parseInt(savedPoll) || 5;
+          
+          if (isConfigValid.value) {
+            fetchTasks();
+            togglePolling(); // start polling automatically
+            updateStats();
+          }
+          timeInterval = setInterval(() => {
+            currentTime.value = Math.floor(Date.now() / 1000);
+          }, 1000);
+        });
+
+        onUnmounted(() => {
+          if (pollInterval) clearInterval(pollInterval);
+          if (timeInterval) clearInterval(timeInterval);
+        });
+
+        // Watchers
+        watch(() => config.apiUrl, (val) => localStorage.setItem('jm_api_url', val));
+        watch(() => config.sessionToken, (val) => localStorage.setItem('jm_session_token', val));
+        watch(tasks, (val) => localStorage.setItem('jm_local_tasks', JSON.stringify(val)), { deep: true });
+        watch(() => config.pollInterval, (val) => {
+          localStorage.setItem('jm_poll_interval', val);
+          if (isPolling.value) {
+            clearInterval(pollInterval);
+            pollInterval = setInterval(fetchTasks, (val || 5) * 1000);
+          }
+        });
+
+        watch(() => videoForm.model, (val) => {
+          if (!val.includes('seedance') && videoForm.functionMode === 'omni_reference') {
+            videoForm.functionMode = 'first_last_frames';
+          }
+        });
+
+        watch(() => videoForm.functionMode, (newMode) => {
+          videoForm.standardFiles = [];
+          videoForm.omniImages = [];
+          videoForm.omniVideos = [];
+          if (newMode === 'omni_reference') {
+            Vue.nextTick(() => {
+              if (promptEditor.value && videoForm.prompt) {
+                promptEditor.value.textContent = videoForm.prompt;
+                syncEditorToPrompt();
+              }
+            });
+          }
+        });
+
+        watch([() => videoForm.omniImages.length, () => videoForm.omniVideos.length, () => videoForm.omniAudios.length], () => {
+          if (!promptEditor.value) return;
+          const validFields = new Set(availableMaterials.value.map(m => m.field));
+          const tags = promptEditor.value.querySelectorAll('.ref-tag');
+          tags.forEach(tag => {
+            if (!validFields.has(tag.dataset.field)) {
+              tag.parentNode?.removeChild(tag);
+            }
+          });
+          syncEditorToPrompt();
+        });
+
+        // Credits
+        const creditInfo = ref(null);
+        const creditLoading = ref(false);
+
+        watch(() => selectedTaskId.value, async (taskId) => {
+          revokeRefUrls();
+          if (!taskId) { selectedRefFiles.value = []; return; }
+          const refs = await MediaCache.getRef(taskId);
+          if (refs) {
+            selectedRefFiles.value = refs.files.map(f => ({
+              ...f,
+              previewUrl: f.type.startsWith('image/') || f.type.startsWith('video/') || f.type.startsWith('audio/') 
+                ? URL.createObjectURL(f.blob) : null
+            }));
+          } else {
+            selectedRefFiles.value = [];
+          }
+        });
+
+        return {
+          config, isConfigValid, activeTab, imageForm, videoForm,
+          tasks, stats, selectedTaskId, selectedRefFiles, selectedTaskObj,
+          resultModal, errorMsg, submitting, fetching, isPolling,
+          submitImageTask, submitVideoTask, fetchTasks, togglePolling, viewResult, queryCredits, creditInfo, creditLoading,
+          onImageRefFiles, removeImageRef, onStandardFiles, removeStandardFile, onOmniImages, removeOmniImage, onOmniVideos, removeOmniVideo, onOmniAudios, removeOmniAudios,
+          copyUrl, openOriginal, formatTime, openRefPreview, formatDate, formatType, getTaskPrompt, getElapsed, getFakeProgress, deleteTask,
+          loadingProgress, onMediaLoaded,
+          promptEditor, showRefDropdown, refDropdownIndex, filteredMaterials, editorHasContent, refPreview,
+          onEditorInput, onEditorKeydown, onEditorClick, onEditorPaste,
+          insertRefFromDropdown, insertRefToEditor, previewLocalFile, closeRefPreview, showFilePreview
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
