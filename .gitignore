@@ -64,3 +64,9 @@ curl参考.txt
 # TLS certificates
 certs/
 
+
+# Sensitive files
+curl参考*.txt
+curl参考*.TXT
+响应参考*.json
+

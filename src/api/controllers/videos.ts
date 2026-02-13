@@ -808,6 +808,7 @@ export async function generateVideo(
       originSubmitId,
       isRegenerate: false,
       enterFrom: "click",
+      position: "page_bottom_box",
       functionMode: flFunctionMode,
       sceneOptions: JSON.stringify([sceneOption]),
     });
