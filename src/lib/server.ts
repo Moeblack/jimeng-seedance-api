@@ -1,5 +1,7 @@
 import Koa from 'koa';
 import KoaRouter from 'koa-router';
+import https from 'https';
+import fs from 'fs';
 import koaRange from 'koa-range';
 import koaCors from "koa2-cors";
 import koaBody from 'koa-body';
@@ -244,6 +246,7 @@ class Server {
     async listen() {
         const host = config.service.host;
         const port = config.service.port;
+        const httpsPort = config.service.httpsPort || (port + 1);
         await Promise.all([
             new Promise((resolve, reject) => {
                 if(host === "0.0.0.0" || host === "localhost" || host === "127.0.0.1")
@@ -261,6 +264,32 @@ class Server {
             })
         ]);
         logger.success(`Server listening on port ${port} (${host})`);
+
+        // 尝试启动 HTTPS 服务
+        try {
+            const certPath = './certs/cert.pem';
+            const keyPath = './certs/key.pem';
+            if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
+                const httpsOptions = {
+                    cert: fs.readFileSync(certPath),
+                    key: fs.readFileSync(keyPath),
+                };
+                await new Promise<void>((resolve, reject) => {
+                    https.createServer(httpsOptions, this.app.callback()).listen(httpsPort, host, (err?: Error) => {
+                        if (err) return reject(err);
+                        resolve();
+                    });
+                });
+                logger.success(`HTTPS Server listening on port ${httpsPort} (${host})`);
+                logger.info(`前端请使用 https://${host === '0.0.0.0' ? '<你的IP>' : host}:${httpsPort} 访问API`);
+            } else {
+                logger.info('未找到 certs/cert.pem 和 certs/key.pem，跳过 HTTPS 启动');
+                logger.info('如需 HTTPS，请运行: openssl req -x509 -newkey rsa:2048 -keyout certs/key.pem -out certs/cert.pem -days 365 -nodes');
+            }
+        } catch (err) {
+            logger.warn('HTTPS 服务启动失败:', err);
+            logger.info('HTTP 服务仍可正常使用');
+        }
     }
 
 }

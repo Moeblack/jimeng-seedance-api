@@ -1,4 +1,4 @@
-﻿# Dependencies
+﻿﻿# Dependencies
 node_modules/
 npm-debug.log*
 yarn-debug.log*
@@ -60,4 +60,7 @@ jimeng-*.md
 # Sensitive credentials
 curl参考.txt
 响应参考.json
+
+# TLS certificates
+certs/
 

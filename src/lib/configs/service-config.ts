@@ -20,16 +20,19 @@ export class ServiceConfig {
     host;
     /** @type {number} 服务绑定端口 */
     port;
+    /** @type {number} HTTPS 服务绑定端口（可选，默认为 port + 1） */
+    httpsPort;
     /** @type {string} 服务路由前缀 */
     urlPrefix;
     /** @type {string} 服务绑定地址（外部访问地址） */
     bindAddress;
 
     constructor(options?: any) {
-        const { name, host, port, urlPrefix, bindAddress } = options || {};
+        const { name, host, port, httpsPort, urlPrefix, bindAddress } = options || {};
         this.name = _.defaultTo(name, 'jimeng-api');
         this.host = _.defaultTo(host, '0.0.0.0');
         this.port = _.defaultTo(port, 5566);
+        this.httpsPort = _.defaultTo(httpsPort, undefined);
         this.urlPrefix = _.defaultTo(urlPrefix, '');
         this.bindAddress = bindAddress;
     }

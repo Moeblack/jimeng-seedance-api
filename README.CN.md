@@ -168,6 +168,39 @@ requestLog: true
 debug: false
 log_level: info # 日志级别: error, warning, info(默认), debug
 ```
+### 🔒 HTTPS 支持（可选）
+
+如果你的前端部署在 HTTPS 上（如 GitHub Pages），而 API 后端使用 HTTP，浏览器会因 **Mixed Content（混合内容）** 策略阻止请求。服务端支持通过自签名证书自动启用 HTTPS 来解决此问题。
+
+#### 配置步骤
+
+1. **生成自签名证书**：
+```bash
+mkdir -p certs
+openssl req -x509 -newkey rsa:2048 -keyout certs/key.pem -out certs/cert.pem -days 365 -nodes -subj "/CN=你的IP或域名"
+```
+
+2. **重启服务**。服务端会自动检测 `certs/cert.pem` 和 `certs/key.pem`，并在 **端口 + 1**（默认：`5101`）上启动 HTTPS 服务。
+
+3. **在浏览器中信任证书**：在新标签页直接打开 `https://你的IP:5101`，点击「高级」→「继续前往」跳过安全警告，之后前端即可正常发起 API 请求，不再出现 Mixed Content 错误。
+
+#### 自定义 HTTPS 端口
+
+可以在 `configs/dev/service.yml` 中设置自定义 HTTPS 端口：
+```yaml
+name: jimeng-api
+port: 5100
+httpsPort: 5101  # 可选，默认为 port + 1
+```
+
+#### Docker 部署
+
+使用 Docker 时，挂载证书目录并暴露 HTTPS 端口：
+```bash
+docker run -d -p 5100:5100 -p 5101:5101 -v ./certs:/app/certs jimeng-api
+```
+
+
 
 ## 🤖 Claude Code Skill
 

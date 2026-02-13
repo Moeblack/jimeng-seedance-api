@@ -167,6 +167,39 @@ debug: false
 log_level: info # Log levels: error, warning, info (default), debug
 ```
 
+### 🔒 HTTPS Support (Optional)
+
+If your frontend is deployed on HTTPS (e.g., GitHub Pages) and the API backend is on HTTP, the browser will block requests due to **Mixed Content** policy. To solve this, the server supports automatic HTTPS via self-signed certificates.
+
+#### Setup
+
+1. **Generate a self-signed certificate**:
+```bash
+mkdir -p certs
+openssl req -x509 -newkey rsa:2048 -keyout certs/key.pem -out certs/cert.pem -days 365 -nodes -subj "/CN=YOUR_IP_OR_DOMAIN"
+```
+
+2. **Restart the service**. The server will automatically detect `certs/cert.pem` and `certs/key.pem`, and start an HTTPS server on **port + 1** (default: `5101`).
+
+3. **Trust the certificate in your browser**: Open `https://YOUR_IP:5101` directly in a new tab, click through the security warning ("Advanced" → "Proceed"), then your frontend can make API requests without Mixed Content errors.
+
+#### Custom HTTPS Port
+
+You can set a custom HTTPS port in `configs/dev/service.yml`:
+```yaml
+name: jimeng-api
+port: 5100
+httpsPort: 5101  # Optional, defaults to port + 1
+```
+
+#### Docker
+
+When using Docker, mount the certificates and expose the HTTPS port:
+```bash
+docker run -d -p 5100:5100 -p 5101:5101 -v ./certs:/app/certs jimeng-api
+```
+
+
 ## 🤖 Claude Code Skill
 
 This project includes a dedicated Claude Code Skill for quick image generation using the Jimeng API directly within Claude Code conversations.
